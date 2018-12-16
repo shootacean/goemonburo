@@ -57,21 +57,45 @@ update msg model =
 -- View
 view : Model -> Html Msg
 view model =
-    section [ class "uk-section"]
-            [ div []
-                  [ input [ placeholder "input your title", value model.newTodo, onInput Change, onSubmit Add ] []
-                  , button [ onClick Add ] [text "add todo"]
-                  , div [] (viewList model.todoList)
+    section [ class "uk-section uk-align-center"]
+            [ div [ class "uk-container uk-width-expand"]
+                  [ input [ value model.newTodo, onInput Change, onSubmit Add, class "uk-input", placeholder "new task"] []
+                  , button [ onClick Add, class "uk-button uk-button-primary" ] [text "add todo"]
+                  , table [ class "uk-table uk-table-divider uk-table-hover uk-table-small" ]
+                          [ tr []
+                               [ th [ class "uk-width-auto" ] [ text "Done" ]
+                               , th [ class "uk-width-expand" ] [ text "Title" ]
+                               , th [ class "uk-width-auto" ] [ text "Action" ]
+                               ]
+                          , tbody [] (viewList model.todoList)
+                          ]
                   ]
             ]
+
+viewNav =
+    div [ class "uk-margin-small-left uk-grid-divider", attribute "uk-grid" "" ]
+        [ div [ class "uk-width-auto" ]
+              [ ul [ class "uk-nav" ]
+                   [ li [ class "uk-parent" ]
+                        [ text "GTD"
+                        , ul [ class "uk-nav-sub" ]
+                             [ li [ class "uk-active"] [ text "Inbox" ] ]
+                        ]
+                   ]
+              ]
+        ]
 
 viewList : List String -> List (Html Msg)
 viewList =
     let
-        todos = List.indexedMap Tuple.pair
-        column ( n, s ) = div []
-                              [ text s
-                              , button [ onClick (Delete n) ] [ text "x" ]
-                              ]
+        tasks = List.indexedMap Tuple.pair
+        column ( n, s ) = tr []
+                             [ td [] [ input [ class "uk-checkbox" ] []
+                                     ]
+                             , td [] [ text s ]
+                             , td [] [ button [ onClick (Delete n), class "uk-button-small uk-button-danger" ]
+                                              [ text "Delete" ]
+                                     ]
+                             ]
     in
-        todos >> List.map column
+        tasks >> List.map column
