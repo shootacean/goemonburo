@@ -4,7 +4,7 @@ import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-
+import Json.Decode as Json
 
 -- Main
 main : Program () Model Msg
@@ -31,7 +31,7 @@ init =
 
 -- Update
 type Msg
-    = Change String | Add | Delete Int
+    = Change String | Delete Int | Enter Int
 
 update : Msg -> Model -> Model
 update msg model =
@@ -41,26 +41,35 @@ update msg model =
         case msg of
             Change s ->
                 { model | newTodo = s }
-            Add ->
-                if isSpace model.newTodo then
-                    model
+            Enter i ->
+                if i == 13 then
+                    if isSpace model.newTodo then
+                        model
+                    else
+                        addTask model
                 else
-                    { model | todoList = model.newTodo :: model.todoList
-                    , newTodo = "" }
+                    model
             Delete n ->
                 let
                     t = model.todoList
                 in
                     { model | todoList = List.take n t ++ List.drop (n + 1) t}
 
+onKeyPress : (Int -> Msg) -> Attribute Msg
+onKeyPress tagger =
+    Html.Events.on "keypress" (Json.map tagger Html.Events.keyCode)
+
+addTask : Model -> Model
+addTask model =
+    { model | todoList = model.newTodo :: model.todoList, newTodo = "" }
+
 
 -- View
 view : Model -> Html Msg
 view model =
-    section [ class "uk-section uk-align-center"]
-            [ div [ class "uk-container uk-width-expand"]
-                  [ input [ value model.newTodo, onInput Change, onSubmit Add, class "uk-input", placeholder "new task"] []
-                  , button [ onClick Add, class "uk-button uk-button-primary" ] [text "add todo"]
+    section [ class "uk-section uk-align-center" ]
+            [ div [ class "uk-container uk-width-expand" ]
+                  [ input [ value model.newTodo, onInput Change, onKeyPress Enter, class "uk-input", placeholder "new task"] []
                   , table [ class "uk-table uk-table-divider uk-table-hover uk-table-small" ]
                           [ tr []
                                [ th [ class "uk-width-auto" ] [ text "Done" ]
