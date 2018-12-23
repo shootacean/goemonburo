@@ -1,4 +1,4 @@
-port module Main exposing (main, init, saveInbox)
+port module Main exposing (main, init, saveInbox, loadInbox)
 
 import Browser
 import Html exposing (..)
@@ -6,11 +6,12 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Json.Decode as Json
 
-import Json.Decode as JD
-import Json.Encode as JE
 
--- Ports
+-- Ports Out
 port saveInbox : Model -> Cmd msg
+
+-- Ports In
+port loadInbox : (List Todo -> msg) -> Sub msg
 
 
 -- Main
@@ -48,12 +49,12 @@ initialModel =
 -- Subscriptions
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    Sub.batch [ loadInbox LoadInbox ]
 
 
 -- Update
 type Msg
-    = Change String | Delete Int | Enter Int | SaveInbox Int
+    = Change String | Delete Int | Enter Int | SaveInbox Int | LoadInbox (List Todo)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -74,14 +75,13 @@ update msg model =
                 else
                     ( model, Cmd.none )
             Delete n ->
-                let
-                    t = model.todoList
-                in
-                    ( { model | todoList = List.take n t ++ List.drop (n + 1) t }
-                    , saveInbox model
-                    )
+                deleteTodo n model
             SaveInbox n ->
                 ( model, saveInbox model )
+            LoadInbox todos ->
+                ( { model | todoList = todos }
+                , Cmd.none
+                )
 
 onKeyPress : (Int -> Msg) -> Attribute Msg
 onKeyPress tagger =
@@ -90,10 +90,18 @@ onKeyPress tagger =
 addTodo : Model -> ( Model, Cmd Msg )
 addTodo model =
     let
-        m = { model | todoList = model.todoList ++ [(Todo (List.length model.todoList + 1) model.newTodo)] , newTodo = "" }
+        m = { model | todoList = model.todoList ++ [(Todo (List.length model.todoList) model.newTodo)] , newTodo = "" }
     in
         ( m, saveInbox m )
 
+deleteTodo : Int -> Model -> ( Model, Cmd Msg )
+deleteTodo n model =
+    let
+        t = model.todoList
+    in
+        ( { model | todoList = List.take n t ++ List.drop (n + 1) t }
+        , saveInbox model
+        )
 
 -- View
 view : Model -> Html Msg

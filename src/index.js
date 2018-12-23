@@ -11,37 +11,14 @@ require('font-awesome/css/font-awesome.css');
 
 require('./index.html');
 
-const database = {
-    dbGtd: null,
-    storeGtdInbox: null,
-};
-database.init = function () {
-    const req = window.indexedDB.open('gtd', 1);
-    req.onupgradeneeded = function (ev) {
-        database.dbGtd = ev.target.result;
-        ev.target.transaction.onerror = function (err) {
-            console.log("XXX0", err);
-        };
-        if (database.dbGtd.objectStoreNames.contains('inbox')) {
-            database.dbGtd.deleteObjectStore('inbox');
-        }
-        database.storeGtdInbox = database.dbGtd.createObjectStore('inbox', {keyPath: 'id'});
-    };
-    req.onsuccess = function (ev) {
-        database.dbGtd = (ev.target) ? ev.target.result : ev.result;
-    };
-};
-database.init();
 
 const Main = require('./Main.elm');
 const app = Main.Elm.Main.init({
     node: document.getElementById('main'),
     flags: 6
 });
-
 app.ports.saveInbox.subscribe(model => {
     if (!model.todoList) return false;
-
     const reqClear = database.dbGtd.transaction('inbox', 'readwrite').objectStore('inbox').clear();
     reqClear.onsuccess = function (event) {
         const store = database.dbGtd.transaction('inbox', 'readwrite').objectStore('inbox');
@@ -57,7 +34,57 @@ app.ports.saveInbox.subscribe(model => {
     reqClear.onerror = function (e) {
         console.error('failed clear store!');
     };
-
-
 });
 
+
+const database = {
+    dbGtd: null,
+    storeGtdInbox: null,
+};
+/**
+ * データベースを初期化する
+ */
+database.init = function () {
+    return new Promise(function (resolve, reject) {
+        const req = window.indexedDB.open('gtd', 1);
+        req.onupgradeneeded = function (ev) {
+            database.dbGtd = ev.target.result;
+            ev.target.transaction.onerror = function (err) {
+                console.log("XXX0", err);
+            };
+            if (database.dbGtd.objectStoreNames.contains('inbox')) {
+                database.dbGtd.deleteObjectStore('inbox');
+            }
+            database.storeGtdInbox = database.dbGtd.createObjectStore('inbox', {keyPath: 'id'});
+            resolve('success!');
+        };
+        req.onsuccess = function (ev) {
+            database.dbGtd = (ev.target) ? ev.target.result : ev.result;
+            resolve('success!');
+        };
+        req.onerror = function (ev) {
+            reject("Failed init!");
+        }
+    });
+};
+/**
+ * データベースをロードする
+ */
+database.loadInbox = function () {
+    console.log('Called loadInbox!');
+    return new Promise(function (resolve, reject) {
+        const store = database.dbGtd.transaction('inbox', 'readwrite').objectStore('inbox');
+        store.getAll().onsuccess = function () {
+            resolve('success!');
+            const rows = event.target.result;
+            console.log(rows);
+            app.ports.loadInbox.send(rows);
+        };
+    });
+};
+
+database.init().then(function () {
+    database.loadInbox();
+}).catch(function (error) {
+    console.log(error);
+});
