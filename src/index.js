@@ -6,16 +6,49 @@ import Icons from 'uikit/dist/js/uikit-icons';
 // loads the Icon plugin
 UIkit.use(Icons);
 
-// components can be called from the imported UIkit reference
-UIkit.notification('Welcome to Goemonburo !');
-
 require('uikit/dist/css/uikit.css');
 require('font-awesome/css/font-awesome.css');
 
 require('./index.html');
-require('./gtd.html');
 
-const {Elm} = require('./Main.elm');
-const mountNode = document.getElementById('main');
+const database = {
+    dbGtd: null,
+    storeGtdInbox: null,
+};
+database.init = function () {
+    const req = window.indexedDB.open('gtd', 1);
+    req.onupgradeneeded = function (ev) {
+        database.dbGtd = ev.target.result;
+        ev.target.transaction.onerror = function (err) {
+            console.log("XXX0", err);
+        };
+        if (database.dbGtd.objectStoreNames.contains('inbox')) {
+            database.dbGtd.deleteObjectStore('inbox');
+        }
+        database.storeGtdInbox = database.dbGtd.createObjectStore('inbox', {keyPath: 'id'});
+    };
+    req.onsuccess = function (ev) {
+        database.dbGtd = (ev.target) ? ev.target.result : ev.result;
+    };
+};
+database.init();
 
-const app = Elm.Main.init({node: mountNode});
+const Main = require('./Main.elm');
+const app = Main.Elm.Main.init({
+    node: document.getElementById('main'),
+    flags: 6
+});
+
+app.ports.saveInbox.subscribe(model => {
+    if (!model.todoList) return false;
+    const store = database.dbGtd.transaction('inbox', 'readwrite').objectStore('inbox');
+    model.todoList.forEach((todo) => {
+        const req = store.put(todo);
+        req.onsuccess = function (e) {
+        };
+        req.onerror = function (e) {
+            console.error('error');
+        };
+    });
+});
+

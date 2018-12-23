@@ -11,9 +11,9 @@
     "file-loader": "^2.0.0",
     "font-awesome": "4",
     "style-loader": "^0.23.1",
-    "uikit": "^3.0.0-rc.24",
+    "uikit": "^3.0.0-rc.25",
     "url-loader": "^1.1.2",
-    "webpack": "^4.26.0",
+    "webpack": "^4.28.0",
     "webpack-dev-server": "^3.1.10"
   },
   "devDependencies": {

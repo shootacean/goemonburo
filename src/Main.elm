@@ -1,4 +1,4 @@
-module Main exposing (..)
+port module Main exposing (main, init, saveInbox)
 
 import Browser
 import Html exposing (..)
@@ -6,62 +6,92 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Json.Decode as Json
 
+import Json.Decode as JD
+import Json.Encode as JE
+
+-- Ports
+port saveInbox : Model -> Cmd msg
+
+
 -- Main
-main : Program () Model Msg
+main : Program Int Model Msg
 main =
-    Browser.sandbox
+    Browser.element
         { init = init
         , update = update
         , view = view
+        , subscriptions = subscriptions
         }
 
 
 -- Model
 type alias Model =
     { newTodo : String
-    , todoList : List String
+    , todoList : List Todo
     }
 
-init : Model
-init =
+type alias Todo =
+    { id : Int, title : String }
+
+
+init : Int -> ( Model, Cmd Msg )
+init flags =
+    ( initialModel, Cmd.none )
+
+initialModel : Model
+initialModel =
     { newTodo = ""
     , todoList = []
     }
 
 
+-- Subscriptions
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.none
+
+
 -- Update
 type Msg
-    = Change String | Delete Int | Enter Int
+    = Change String | Delete Int | Enter Int | SaveInbox Int
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let
         isSpace = String.trim >> String.isEmpty
     in
         case msg of
             Change s ->
-                { model | newTodo = s }
+                ( { model | newTodo = s }
+                , Cmd.none
+                )
             Enter i ->
                 if i == 13 then
                     if isSpace model.newTodo then
-                        model
+                        ( model, Cmd.none )
                     else
-                        addTask model
+                        addTodo model
                 else
-                    model
+                    ( model, Cmd.none )
             Delete n ->
                 let
                     t = model.todoList
                 in
-                    { model | todoList = List.take n t ++ List.drop (n + 1) t}
+                    ( { model | todoList = List.take n t ++ List.drop (n + 1) t}
+                    , saveInbox model
+                    )
+            SaveInbox n ->
+                ( model, saveInbox model )
 
 onKeyPress : (Int -> Msg) -> Attribute Msg
 onKeyPress tagger =
-    Html.Events.on "keypress" (Json.map tagger Html.Events.keyCode)
+    Html.Events.on "keypress" ( Json.map tagger Html.Events.keyCode )
 
-addTask : Model -> Model
-addTask model =
-    { model | todoList = model.newTodo :: model.todoList, newTodo = "" }
+addTodo : Model -> ( Model, Cmd Msg )
+addTodo model =
+    ( { model | todoList = model.todoList ++ [(Todo (List.length model.todoList + 1) model.newTodo)] , newTodo = "" }
+    , saveInbox model
+    )
 
 
 -- View
@@ -81,6 +111,7 @@ view model =
                   ]
             ]
 
+-- サイドバー 現状は使用していない
 viewNav =
     div [ class "uk-margin-small-left uk-grid-divider", attribute "uk-grid" "" ]
         [ div [ class "uk-width-auto" ]
@@ -94,17 +125,17 @@ viewNav =
               ]
         ]
 
-viewList : List String -> List (Html Msg)
-viewList =
-    let
-        tasks = List.indexedMap Tuple.pair
-        column ( n, s ) = tr []
-                             [ td [] [ input [ class "uk-checkbox" ] []
-                                     ]
-                             , td [] [ text s ]
-                             , td [] [ button [ onClick (Delete n), class "uk-button-small uk-button-danger" ]
-                                              [ text "Delete" ]
-                                     ]
-                             ]
-    in
-        tasks >> List.map column
+viewList : List Todo -> List (Html Msg)
+viewList todoList =
+    List.map viewTodo todoList
+
+viewTodo : Todo -> Html Msg
+viewTodo todo =
+    tr []
+       [ td [] [ input [ class "uk-checkbox" ] []
+               ]
+       , td [] [ text todo.title ]
+       , td [] [ button [ onClick (Delete todo.id), class "uk-button-small uk-button-danger" ]
+                        [ text "Delete" ]
+               ]
+       ]

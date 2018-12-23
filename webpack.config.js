@@ -1,4 +1,4 @@
-let path = require('path');
+const path = require('path');
 
 module.exports = {
     mode: 'development',
@@ -29,7 +29,7 @@ module.exports = {
                 test: /\.elm$/,
                 exclude: [/elm-stuff/, /node_modules/],
                 // loader: 'elm-webpack-loader?verbose=true&warn=true',
-                loader: 'elm-webpack-loader?verbose=true',
+                loader: 'elm-webpack-loader',
             },
             {
                 test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
