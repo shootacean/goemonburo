@@ -41,14 +41,23 @@ const app = Main.Elm.Main.init({
 
 app.ports.saveInbox.subscribe(model => {
     if (!model.todoList) return false;
-    const store = database.dbGtd.transaction('inbox', 'readwrite').objectStore('inbox');
-    model.todoList.forEach((todo) => {
-        const req = store.put(todo);
-        req.onsuccess = function (e) {
-        };
-        req.onerror = function (e) {
-            console.error('error');
-        };
-    });
+
+    const reqClear = database.dbGtd.transaction('inbox', 'readwrite').objectStore('inbox').clear();
+    reqClear.onsuccess = function (event) {
+        const store = database.dbGtd.transaction('inbox', 'readwrite').objectStore('inbox');
+        model.todoList.forEach((todo) => {
+            const req = store.put(todo);
+            req.onsuccess = function (e) {
+            };
+            req.onerror = function (e) {
+                console.error('failed save store!');
+            };
+        });
+    };
+    reqClear.onerror = function (e) {
+        console.error('failed clear store!');
+    };
+
+
 });
 
