@@ -77,7 +77,7 @@ update msg model =
                 let
                     t = model.todoList
                 in
-                    ( { model | todoList = List.take n t ++ List.drop (n + 1) t}
+                    ( { model | todoList = List.take n t ++ List.drop (n + 1) t }
                     , saveInbox model
                     )
             SaveInbox n ->
@@ -89,15 +89,16 @@ onKeyPress tagger =
 
 addTodo : Model -> ( Model, Cmd Msg )
 addTodo model =
-    ( { model | todoList = model.todoList ++ [(Todo (List.length model.todoList + 1) model.newTodo)] , newTodo = "" }
-    , saveInbox model
-    )
+    let
+        m = { model | todoList = model.todoList ++ [(Todo (List.length model.todoList + 1) model.newTodo)] , newTodo = "" }
+    in
+        ( m, saveInbox m )
 
 
 -- View
 view : Model -> Html Msg
 view model =
-    section [ class "uk-section uk-align-center" ]
+    section [ class "uk-section uk-align-center uk-section-muted" ]
             [ div [ class "uk-container uk-width-expand" ]
                   [ input [ value model.newTodo, onInput Change, onKeyPress Enter, class "uk-input", placeholder "new task"] []
                   , table [ class "uk-table uk-table-divider uk-table-hover uk-table-small" ]
