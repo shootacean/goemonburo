@@ -98,10 +98,9 @@ deleteTodo : Int -> Model -> ( Model, Cmd Msg )
 deleteTodo n model =
     let
         t = model.todoList
+        m = { model | todoList = List.take n t ++ List.drop (n + 1) t }
     in
-        ( { model | todoList = List.take n t ++ List.drop (n + 1) t }
-        , saveInbox model
-        )
+        ( m, saveInbox m )
 
 -- View
 view : Model -> Html Msg
