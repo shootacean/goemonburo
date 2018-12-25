@@ -98,6 +98,7 @@ deleteTodo : Int -> Model -> ( Model, Cmd Msg )
 deleteTodo n model =
     let
         t = model.todoList
+--        m = { model | todoList = List.take n t ++ List.drop (n + 1) t }
         m = { model | todoList = List.take n t ++ List.drop (n + 1) t }
     in
         ( m, saveInbox m )
@@ -134,16 +135,19 @@ viewNav =
         ]
 
 viewList : List Todo -> List (Html Msg)
-viewList todoList =
-    List.map viewTodo todoList
+viewList =
+    let
+        todos = List.indexedMap Tuple.pair
+    in
+        todos >> List.map viewTodo
 
-viewTodo : Todo -> Html Msg
-viewTodo todo =
+viewTodo : (Int, Todo) -> Html Msg
+viewTodo (n, todo) =
     tr []
        [ td [] [ input [ class "uk-checkbox" ] []
                ]
        , td [] [ text todo.title ]
-       , td [] [ button [ onClick (Delete todo.id), class "uk-button-small uk-button-danger" ]
+       , td [] [ button [ onClick (Delete n), class "uk-button-small uk-button-danger" ]
                         [ text "Delete" ]
                ]
        ]
