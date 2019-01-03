@@ -36,7 +36,14 @@ app.ports.saveInbox.subscribe(model => {
         console.error('failed clear store!');
     };
 });
-
+app.ports.openTodoDetail.subscribe( n => {
+    const todoDetail = document.getElementById('todo-detail');
+    if ( todoDetail.hasAttribute('hidden') ) {
+        todoDetail.removeAttribute('hidden');
+    } else {
+        todoDetail.setAttribute('hidden', '');
+    }
+});
 
 const database = {
     dbGtd: null,

@@ -9,6 +9,7 @@ import Json.Decode as Json
 
 -- Ports Out
 port saveInbox : Model -> Cmd msg
+port openTodoDetail : Int -> Cmd msg
 
 -- Ports In
 port loadInbox : (List Todo -> msg) -> Sub msg
@@ -32,7 +33,7 @@ type alias Model =
     }
 
 type alias Todo =
-    { id : Int, title : String }
+    { id : Int, title : String, context : String }
 
 
 init : Int -> ( Model, Cmd Msg )
@@ -54,7 +55,7 @@ subscriptions model =
 
 -- Update
 type Msg
-    = Change String | Delete Int | Enter Int | SaveInbox Int | LoadInbox (List Todo)
+    = SaveInbox Int | LoadInbox (List Todo) | Change String | Enter Int | Delete Int | OpenTodoDetail Int
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -62,6 +63,12 @@ update msg model =
         isSpace = String.trim >> String.isEmpty
     in
         case msg of
+            LoadInbox todos ->
+                ( { model | todoList = todos }
+                , Cmd.none
+                )
+            SaveInbox n ->
+                ( model, saveInbox model )
             Change s ->
                 ( { model | newTodo = s }
                 , Cmd.none
@@ -76,12 +83,9 @@ update msg model =
                     ( model, Cmd.none )
             Delete n ->
                 deleteTodo n model
-            SaveInbox n ->
-                ( model, saveInbox model )
-            LoadInbox todos ->
-                ( { model | todoList = todos }
-                , Cmd.none
-                )
+            OpenTodoDetail n ->
+                ( model, openTodoDetail n )
+
 
 onKeyPress : (Int -> Msg) -> Attribute Msg
 onKeyPress tagger =
@@ -90,7 +94,9 @@ onKeyPress tagger =
 addTodo : Model -> ( Model, Cmd Msg )
 addTodo model =
     let
-        m = { model | todoList = model.todoList ++ [(Todo (List.length model.todoList) model.newTodo)] , newTodo = "" }
+        m = { model | todoList = model.todoList ++ [(Todo (List.length model.todoList) model.newTodo "")]
+            , newTodo = ""
+            }
     in
         ( m, saveInbox m )
 
@@ -98,32 +104,24 @@ deleteTodo : Int -> Model -> ( Model, Cmd Msg )
 deleteTodo n model =
     let
         t = model.todoList
---        m = { model | todoList = List.take n t ++ List.drop (n + 1) t }
         m = { model | todoList = List.take n t ++ List.drop (n + 1) t }
     in
         ( m, saveInbox m )
 
+
 -- View
 view : Model -> Html Msg
 view model =
-    section [ class "uk-section uk-align-center uk-section-muted" ]
-            [ div [ class "uk-container uk-width-expand" ]
-                  [ input [ value model.newTodo, onInput Change, onKeyPress Enter, class "uk-input", placeholder "new task"] []
-                  , table [ class "uk-table uk-table-divider uk-table-hover uk-table-small" ]
-                          [ tr []
-                               [ th [ class "uk-width-auto" ] [ text "Done" ]
-                               , th [ class "uk-width-expand" ] [ text "Title" ]
-                               , th [ class "uk-width-auto" ] [ text "Action" ]
-                               ]
-                          , tbody [] (viewList model.todoList)
-                          ]
-                  ]
-            ]
+    div [ class "uk-grid-small uk-margin-small-top", attribute "uk-grid" "" ]
+        [ viewNav
+        , viewInbox model
+        , viewTodoDetail 0
+        ]
 
--- サイドバー 現状は使用していない
+-- サイドナビゲーション
 viewNav =
-    div [ class "uk-margin-small-left uk-grid-divider", attribute "uk-grid" "" ]
-        [ div [ class "uk-width-auto" ]
+    div [ class "uk-margin-small-left"]
+        [ div [ class "uk-width-1-5" ]
               [ ul [ class "uk-nav" ]
                    [ li [ class "uk-parent" ]
                         [ text "GTD"
@@ -133,6 +131,23 @@ viewNav =
                    ]
               ]
         ]
+
+viewInbox : Model -> Html Msg
+viewInbox model =
+    section [ class "uk-section uk-align-center uk-width-expand" ]
+            [ div [ class "uk-container" ]
+                  [ input [ value model.newTodo, onInput Change, onKeyPress Enter, class "uk-input", placeholder "new task"] []
+                  , table [ class "uk-table uk-table-divider uk-table-hover uk-table-small" ]
+                          [ tr []
+                               [ th [ class "uk-width-auto" ] [ text "Done" ]
+                               , th [ class "uk-width-expand" ] [ text "Title" ]
+                               , th [ class "uk-width-auto" ] [ text "Context" ]
+                               , th [ class "uk-width-auto" ] [ text "Action" ]
+                               ]
+                          , tbody [] (viewList model.todoList)
+                          ]
+                  ]
+            ]
 
 viewList : List Todo -> List (Html Msg)
 viewList =
@@ -144,10 +159,15 @@ viewList =
 viewTodo : (Int, Todo) -> Html Msg
 viewTodo (n, todo) =
     tr []
-       [ td [] [ input [ class "uk-checkbox" ] []
-               ]
-       , td [] [ text todo.title ]
+       [ td [] [ input [ class "uk-checkbox" ] [] ]
+       , td [ onClick ( OpenTodoDetail n ) ] [ text todo.title ]
+       , td [] [ span [ class "uk-badge" ] [ text todo.context ] ]
        , td [] [ button [ onClick (Delete n), class "uk-button-small uk-button-danger" ]
                         [ text "Delete" ]
                ]
        ]
+
+viewTodoDetail : Int -> Html Msg
+viewTodoDetail n =
+    section [ id "todo-detail", class "uk-width-2-5", attribute "hidden" "" ]
+            [ text "detail" ]
