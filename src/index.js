@@ -9,6 +9,7 @@ UIkit.use(Icons);
 require('uikit/dist/css/uikit.css');
 require('font-awesome/css/font-awesome.css');
 
+require('./goemonburo.css');
 require('./index.html');
 
 
