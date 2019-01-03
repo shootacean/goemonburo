@@ -72,13 +72,11 @@ database.init = function () {
  * データベースをロードする
  */
 database.loadInbox = function () {
-    console.log('Called loadInbox!');
     return new Promise(function (resolve, reject) {
         const store = database.dbGtd.transaction('inbox', 'readwrite').objectStore('inbox');
         store.getAll().onsuccess = function () {
             resolve('success!');
             const rows = event.target.result;
-            console.log(rows);
             app.ports.loadInbox.send(rows);
         };
     });
