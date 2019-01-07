@@ -9,6 +9,7 @@
     "css-loader": "^1.0.1",
     "elm-webpack-loader": "^5.0.0",
     "file-loader": "^2.0.0",
+    "firebase-tools": "^6.2.2",
     "font-awesome": "4",
     "style-loader": "^0.23.1",
     "uikit": "^3.0.0-rc.25",
