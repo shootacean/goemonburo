@@ -38,6 +38,7 @@ app.ports.saveInbox.subscribe(model => {
 });
 app.ports.openTodoDetail.subscribe( n => {
     const todoDetail = document.getElementById('todo-detail');
+    app.ports.loadTodoDetail.send(n);
     if ( todoDetail.hasAttribute('hidden') ) {
         todoDetail.removeAttribute('hidden');
     } else {

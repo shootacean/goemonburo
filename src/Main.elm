@@ -4,6 +4,7 @@ import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Array exposing (..)
 import Json.Decode as Json
 
 
@@ -13,6 +14,7 @@ port openTodoDetail : Int -> Cmd msg
 
 -- Ports In
 port loadInbox : (List Todo -> msg) -> Sub msg
+port loadTodoDetail : (Int -> msg) -> Sub msg
 
 
 -- Main
@@ -29,7 +31,10 @@ main =
 -- Model
 type alias Model =
     { newTodo : String
+    , editTitle : String
+    , editContext : String
     , todoList : List Todo
+    , todoDetail : ( Int, Maybe Todo)
     }
 
 type alias Todo =
@@ -43,19 +48,25 @@ init flags =
 initialModel : Model
 initialModel =
     { newTodo = ""
+    , editTitle = ""
+    , editContext = ""
     , todoList = []
+    , todoDetail = ( 0, Just ( Todo 0 "" "" ) )
     }
 
 
 -- Subscriptions
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch [ loadInbox LoadInbox ]
+    Sub.batch [ loadInbox LoadInbox
+              , loadTodoDetail LoadTodoDetail
+              ]
 
 
 -- Update
 type Msg
-    = SaveInbox Int | LoadInbox (List Todo) | Change String | Enter Int | Delete Int | OpenTodoDetail Int
+    = SaveInbox Int | LoadInbox (List Todo) | Change String | Enter Int | Delete Int | OpenTodoDetail Int | LoadTodoDetail Int | SaveTodo Int
+    | EditTitle String | EditContext String
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -70,9 +81,7 @@ update msg model =
             SaveInbox n ->
                 ( model, saveInbox model )
             Change s ->
-                ( { model | newTodo = s }
-                , Cmd.none
-                )
+                ( { model | newTodo = s }, Cmd.none )
             Enter i ->
                 if i == 13 then
                     if isSpace model.newTodo then
@@ -83,8 +92,22 @@ update msg model =
                     ( model, Cmd.none )
             Delete n ->
                 deleteTodo n model
+            SaveTodo n ->
+                saveTodo n model
             OpenTodoDetail n ->
                 ( model, openTodoDetail n )
+            LoadTodoDetail n ->
+                let
+                    t = Array.get n ( Array.fromList model.todoList )
+                    jt = Maybe.withDefault defaultTodo t
+                in
+                    ( { model | todoDetail = ( n, t ), editTitle = jt.title, editContext = jt.context }
+                    , Cmd.none
+                    )
+            EditTitle s ->
+                ( { model | editTitle = s }, Cmd.none )
+            EditContext s ->
+                ( { model | editContext = s }, Cmd.none )
 
 
 onKeyPress : (Int -> Msg) -> Attribute Msg
@@ -108,6 +131,18 @@ deleteTodo n model =
     in
         ( m, saveInbox m )
 
+saveTodo : Int -> Model -> ( Model, Cmd Msg )
+saveTodo n model =
+    let
+        l = model.todoList
+        t = Maybe.withDefault defaultTodo ( Tuple.second model.todoDetail )
+        m = { model | todoList = List.take n l ++ [ t ] ++ List.drop (n + 1) l }
+    in
+        ( m, saveInbox m )
+
+defaultTodo : Todo
+defaultTodo =
+   Todo 0 "undefined" ""
 
 -- View
 view : Model -> Html Msg
@@ -115,7 +150,7 @@ view model =
     div [ class "uk-grid-small uk-margin-small-top", attribute "uk-grid" "" ]
         [ viewNav
         , viewInbox model
-        , viewTodoDetail 0
+        , viewTodoDetail model
         ]
 
 -- サイドナビゲーション
@@ -167,7 +202,30 @@ viewTodo (n, todo) =
                ]
        ]
 
-viewTodoDetail : Int -> Html Msg
-viewTodoDetail n =
-    section [ id "todo-detail", class "uk-width-2-5", attribute "hidden" "" ]
-            [ text "detail" ]
+viewTodoDetail : Model -> Html Msg
+viewTodoDetail model =
+    let
+        default = Todo 0 "undefined" ""
+        n = Tuple.first model.todoDetail
+        t = Maybe.withDefault default ( Tuple.second model.todoDetail )
+    in
+        section [ id "todo-detail", class "uk-width-2-5 uk-margin-medium-top", attribute "hidden" "" ]
+                [ Html.form [ class "uk-form-stacked" ]
+                            [ div [ class "uk-margin" ]
+                                  [ label [ class "uk-form-label" ] [ text "Title" ]
+                                  , div [ class "uk-form-controls" ]
+                                        [ input [ class "uk-input uk-form-width-medium", onInput EditTitle, value model.editTitle ]
+                                                []
+                                        ]
+                                  ]
+                            , div [ class "uk-margin" ]
+                                  [ label [ class "uk-form-label" ] [ text "Context" ]
+                                  , div [ class "uk-form-controls uk-form-width-medium" ]
+                                        [ input [ class "uk-input", onInput EditContext, value model.editContext ]
+                                                []
+                                        ]
+                                  ]
+                            , button [ type_ "button", class "uk-button uk-button-primary", onClick ( SaveTodo n ) ]
+                                     [ text "Save" ]
+                            ]
+                ]
